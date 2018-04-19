@@ -1,6 +1,7 @@
 import * as React from 'react';
 import './App.css';
 import Game from './containers/Game';
+import GameButton from './containers/GameButton';
 
 import logo from './logo.svg';
 
@@ -19,6 +20,9 @@ class App extends React.Component {
                     To get started, edit <code>src/App.tsx</code> and save to reload.
                 </p>
                 <Game />
+                <div>
+                    <GameButton />
+                </div>
             </div>
         );
     }
