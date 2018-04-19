@@ -1,7 +1,9 @@
 import { combineReducers } from 'redux'
 
-const MAP_SIZE: number = 5;
+const MAP_SIZE: number = 10;
 const PIXEL_SIZE: number = 8;
+const SNAKE_START: string[] = ["20", "10", "00"];
+const APPLE_START_POSITON: string = "50";
 interface IAction { type: string, [key: string]: any }
 
 /*
@@ -10,15 +12,30 @@ interface IAction { type: string, [key: string]: any }
 export enum Direction { UP = "UP", DOWN = "DOWN", LEFT = "LEFT", RIGHT = "RIGHT" }
 export interface IPosition { x: number, y: number }
 export interface ISnakeLinks extends Array<string> { }
-export interface ISnake { links: ISnakeLinks, direction: Direction }
-
-const moveSnake = (links: ISnakeLinks, direction: Direction) => {
+export interface IDirectionMoves extends Array<Direction> { }
+export interface IApple { position: string, color: string }
+export interface ISnake {
+    active: boolean,
+    color: string,
+    direction: IDirectionMoves,
+    links: ISnakeLinks,
+    apple: IApple
+}
+const newSnakeHead = (links: ISnakeLinks, direction: Direction): string => {
     const X: number = 0;
     const Y: number = 1;
-    const moveUp = (position: string): string => (position[X] + (Number(position[Y]) + 1));
-    const moveDown = (position: string): string => (position[X] + (Number(position[Y]) - 1));
-    const moveLeft = (position: string): string => ((Number(position[X]) + 1) + position[Y]);
-    const moveRight = (position: string): string => ((Number(position[X]) - 1) + position[Y]);
+    const safeIncrement = ((modulo: number) => (num: number) => ((num + 1) % modulo))(MAP_SIZE);
+    const safeDecrement = ((modulo: number) => (num: number) => {
+        const decNum = num - 1;
+        if (num >= 0) {
+            return Math.abs((decNum) % modulo);
+        }
+        return modulo - 1;
+    })(MAP_SIZE);
+    const moveUp = (position: string): string => (position[X] + safeIncrement(Number(position[Y])));
+    const moveDown = (position: string): string => (position[X] + safeDecrement(Number(position[Y])));
+    const moveLeft = (position: string): string => (safeIncrement(Number(position[X])) + position[Y]);
+    const moveRight = (position: string): string => (safeIncrement(Number(position[X])) + position[Y]);
     let head = links[0];
     switch(direction) {
         case Direction.UP: {
@@ -39,24 +56,60 @@ const moveSnake = (links: ISnakeLinks, direction: Direction) => {
         }
     }
 
-    return [head, ...links.slice(0, links.length - 1)];
+    console.info('move head', head, MAP_SIZE)
+    return head;
 }
-const snakeReducer = (state: ISnake = { links: ['00'], direction: Direction.RIGHT }, action: IAction): ISnake => {
+const DEFAULT_SNAKE_STATE: ISnake = {
+    active: true,
+    apple: { position: APPLE_START_POSITON, color: 'red' },
+    color: 'black',
+    direction: [Direction.RIGHT],
+    links: SNAKE_START,
+};
+const moveApple = (links: string[], { grid }: IMap): string => {
+    const openGridUnits: string[] = Object.keys(grid)
+        .filter(gridKey => links.indexOf(gridKey) === -1);
+    const randomGridIndex: number = Math.floor(Math.random() * openGridUnits.length);
+    console.info('new APPLE!', openGridUnits[randomGridIndex])
+    return openGridUnits[randomGridIndex];
+}
+const snakeReducer = (state: ISnake = DEFAULT_SNAKE_STATE, action: IAction): ISnake => {
     switch(action.type) {
-        case Direction.UP: {
-            return { ...state, links: moveSnake(state.links, Direction.UP), direction: Direction.UP }
+        case 'NEXTFRAME': {
+            const { apple, direction, links } = state;
+
+            let newLinks: ISnakeLinks;
+            let newApple: IApple;
+            const head = newSnakeHead(links, direction[0]);
+            if (head === apple.position) {
+                newLinks = [head, ...links];
+                newApple = { ...apple, position: moveApple(newLinks, action.map) }
+            } else {
+                newLinks = [head, ...links.slice(0, links.length - 1)]
+                newApple = { ...apple };
+            }
+
+            let newDirection: IDirectionMoves;
+            if (direction.length > 1) {
+                newDirection = direction.slice(1);
+            } else {
+                newDirection = direction.slice();
+            }
+
+
+            return { ...state, apple: newApple, direction: newDirection, links: newLinks };
         }
-        case Direction.DOWN: {
-            return { ...state, links: moveSnake(state.links, Direction.DOWN), direction: Direction.DOWN }
+        case 'TURN': {
+            return { ...state, direction: [ ...state.direction, action.direction ] }
         }
-        case Direction.LEFT: {
-            return { ...state, links: moveSnake(state.links, Direction.LEFT), direction: Direction.LEFT }
+        case 'ON': {
+            return { ...state, active: true };
         }
-        case Direction.RIGHT: {
-            return { ...state, links: moveSnake(state.links, Direction.RIGHT), direction: Direction.RIGHT }
+        case 'OFF': {
+            return { ...state, active: false };
         }
         default: {
-            return state;
+            return { ...state };
         }
     }
 }
@@ -65,18 +118,12 @@ const snakeReducer = (state: ISnake = { links: ['00'], direction: Direction.RIGH
  * Map
  */
 
-export interface IMapPixel extends IPosition {
-    X0Y0: IPosition,
-    X0Y1: IPosition,
-    X1Y0: IPosition,
-    X1Y1: IPosition
+export interface IGrid {
+    [key: string]: IPosition
 }
-export interface IMap {
-    [key: string]: IMapPixel
-}
-const generateMap = (size: number = MAP_SIZE, pixels: number): IMap => {
+const generateMap = (size: number = MAP_SIZE, pixels: number): IGrid => {
     const mapCombination: number[] = [];
-    const map: IMap = {};
+    const map: IGrid = {};
     while (size--) {
         mapCombination.push(size);
     }
@@ -85,22 +132,6 @@ const generateMap = (size: number = MAP_SIZE, pixels: number): IMap => {
         mapCombination.forEach((numY) => {
             const key = numX + '' + numY;
             map[key] = {
-                X0Y0: {
-                    x: numX * pixels,
-                    y: numY * pixels,
-                },
-                X0Y1: {
-                    x: numX * pixels,
-                    y: (numY + 1) * pixels,
-                },
-                X1Y0: {
-                    x: (numX + 1) * pixels,
-                    y: numY * pixels,
-                },
-                X1Y1: {
-                    x: (numX + 1) * pixels,
-                    y: (numY + 1) * pixels,
-                },
                 x: numX,
                 y: numY,
             };
@@ -108,11 +139,11 @@ const generateMap = (size: number = MAP_SIZE, pixels: number): IMap => {
     });
     return map;
 }
-interface IMapState { size: number, grid: IMap, pixels: number };
-const mapReducer = (state: IMapState = { size: MAP_SIZE, grid: generateMap(MAP_SIZE, PIXEL_SIZE), pixels: PIXEL_SIZE }, action: IAction): IMapState => {
+export interface IMap { grid: IGrid, pixelSize: number, size: number };
+const mapReducer = (state: IMap = { size: MAP_SIZE, grid: generateMap(MAP_SIZE, PIXEL_SIZE), pixelSize: PIXEL_SIZE }, action: IAction): IMap => {
     switch(action.type) {
         case "SIZE": {
-            return { ...state, size: action.size, grid: generateMap(action.size, state.pixels) };
+            return { ...state, size: action.size, grid: generateMap(action.size, state.pixelSize) };
         }
         default: {
             return state;
@@ -120,26 +151,7 @@ const mapReducer = (state: IMapState = { size: MAP_SIZE, grid: generateMap(MAP_S
     }
 }
 
-/*
- * Apple
- */
-//
-// const SNAKE_START_POSITON: IPosition = { x: 1, y: 1 };
-// interface IAppleState { position: IPosition, color: string }
-// // const moveApple = (oldApple: IPosition, snake: ISnake, map: IMap) => ({})
-// const appleReducer = (state: IAppleState = { color: 'red', position: SNAKE_START_POSITON }, action: IAction): IAppleState => {
-//     switch(action.type) {
-//         case "MOVE": {
-//             return state;
-//         }
-//         default: {
-//             return state;
-//         }
-//     }
-// }
-
 export default combineReducers({
-    // apple: appleReducer,
     map: mapReducer,
     snake: snakeReducer,
 })
