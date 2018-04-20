@@ -1,57 +1,40 @@
 import {connect} from 'react-redux';
-import { Direction, IMap, IPosition, ISnake } from './../../reducers/index';
-import Game, { IGameProps, ISnakeMap } from './Component';
+import {IMapPixel} from "../../reducers";
+import {Direction, IAction, ISnake} from './../../reducers/index';
+import Game, { IColoredSnakeMap, IGameProps } from './Component';
 
 export interface IStateToProps {
-    map: IMap;
     snake: ISnake;
 }
 export interface IConnectStateProps {
     active: boolean,
-    map: IMap,
+    apple: IMapPixel,
     pixelSize: number,
     size: number,
-    snakeMap: ISnakeMap
+    snakeLinks: IColoredSnakeMap,
 }
 export interface IConnectDispatchProps {
-    nextFrame: (map: IMap) => any,
+    nextFrame: () => any,
     turn: (d: Direction) => any,
 }
 export default connect(
     (state: IStateToProps): IConnectStateProps => {
-        const { map, snake } = state;
-        const { grid, pixelSize, size } = map;
+        const { snake } = state;
+        const { active, apple, color, pixelSize, size, links } = snake;
         return {
-            active: snake.active,
-            map,
+            active,
+            apple,
             pixelSize,
             size,
-            snakeMap: Object
-                .keys(grid)
-                .map((gridKey: string): { gridKey: string, gridUnit: IPosition } => ({ gridKey, gridUnit: grid[gridKey]}))
-                .reduce((snakeMap: ISnakeMap, { gridKey, gridUnit }) => {
-                    return {
-                        ...snakeMap,
-                        [gridKey]: {
-                            ...gridUnit,
-                            color: snake.links.indexOf(gridKey) !== -1 ? snake.color
-                                : gridKey === snake.apple.position ? snake.apple.color
-                                    : null,
-                        }
-                    }
-                }, {}),
+            snakeLinks: links.map(link => ({ position: {...link}, color })),
         };
     },
     (dispatch): IConnectDispatchProps => ({
-        nextFrame: (map: IMap): { map: IMap, type: string } => dispatch({ map, type: 'NEXTFRAME' }),
+        nextFrame: (): IAction => dispatch({ type: 'NEXTFRAME' }),
         turn: (direction: Direction): { direction: Direction, type: string } => dispatch({ type: 'TURN', direction })
     }),
-    ({ active, map, pixelSize, size, snakeMap }: IConnectStateProps, dispatchProps): IGameProps => ({
+    (stateProps: IConnectStateProps, dispatchProps: IConnectDispatchProps): IGameProps => ({
+        ...stateProps,
         ...dispatchProps,
-        active,
-        nextFrame: () => dispatchProps.nextFrame(map),
-        pixelSize,
-        size,
-        snakeMap,
     })
 )(Game);
