@@ -1,20 +1,16 @@
 import * as React from 'react';
-import { Direction, IPosition } from "./../../reducers";
+import {Direction, IMapPixel } from "./../../reducers";
 
 const CANVAS_ID: string = "Game";
 
-export interface ISnakeMapPixel extends IPosition {
-    color: string;
-}
-export interface ISnakeMap {
-    [key: string]: ISnakeMapPixel;
-}
+export interface IColoredSnakeMap extends Array<IMapPixel> { }
 export interface IGameProps {
     active: boolean,
+    apple: IMapPixel,
     nextFrame: () => any,
     pixelSize: number,
     size: number,
-    snakeMap: ISnakeMap,
+    snakeLinks: IColoredSnakeMap,
     turn: (direction: Direction) => any,
 }
 
@@ -32,8 +28,8 @@ export default class Game extends React.Component<IGameProps> {
     }
 
     public shouldComponentUpdate(nextProps: IGameProps) {
-        const oldMap = this.props.snakeMap;
-        const newMap = nextProps.snakeMap;
+        const oldMap = this.props.snakeLinks;
+        const newMap = nextProps.snakeLinks;
         return JSON.stringify(oldMap) !== JSON.stringify(newMap);
     }
 
@@ -79,13 +75,13 @@ export default class Game extends React.Component<IGameProps> {
 
             if (ctx) {
                 ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                const { snakeMap, pixelSize } = this.props;
-                Object.keys(snakeMap)
-                    .map(gridKey => snakeMap[gridKey])
-                    .filter(gridUnit => gridUnit.color)
-                    .forEach((gridUnit): void => {
-                        ctx.fillStyle = gridUnit.color;
-                        ctx.fillRect(gridUnit.x * pixelSize, gridUnit.y * pixelSize, pixelSize, pixelSize);
+                const { apple, snakeLinks, pixelSize } = this.props;
+                ctx.fillStyle = apple.color;
+                ctx.fillRect(apple.position.X * pixelSize, apple.position.Y * pixelSize, pixelSize, pixelSize);
+                snakeLinks
+                    .forEach((link): void => {
+                        ctx.fillStyle = link.color;
+                        ctx.fillRect(link.position.X * pixelSize, link.position.Y * pixelSize, pixelSize, pixelSize);
                     });
             }
         }
