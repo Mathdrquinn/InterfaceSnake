@@ -22,21 +22,20 @@ export default class Game extends React.Component<IGameProps> {
     private canvas?: HTMLCanvasElement;
 
     public componentDidMount(): void {
-        this.draw();
-        this.nextFrame();
+        this.addEventListeners();
+        this.props.nextFrame();
     }
 
     public componentDidUpdate(): void {
-        this.addEventListeners();
         this.draw();
-        if (this.props.active) {
-            this.nextFrame();
-        }
+        setTimeout(() => this.props.nextFrame(), 200);
     }
 
-    // public shouldComponentUpdate() {
-    //     // use this to fix stuff!
-    // }
+    public shouldComponentUpdate(nextProps: IGameProps) {
+        const oldMap = this.props.snakeMap;
+        const newMap = nextProps.snakeMap;
+        return JSON.stringify(oldMap) !== JSON.stringify(newMap);
+    }
 
     public render() {
         const canvasSize = this.props.size * this.props.pixelSize;
@@ -90,9 +89,5 @@ export default class Game extends React.Component<IGameProps> {
                     });
             }
         }
-    }
-
-    private nextFrame(): void {
-        setTimeout(() => this.props.nextFrame(), 1000);
     }
 }
