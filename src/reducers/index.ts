@@ -104,7 +104,7 @@ const snakeReducer = (state: ISnake = DEFAULT_SNAKE_STATE, action: IAction): ISn
                 newApple = { ...apple };
             }
 
-            if (newLinks.slice(1).indexOf(head) !== -1) {
+            if (newLinks.slice(1).find(p => p.X === head.X && p.Y === head.Y) !== undefined) {
                 // GAME OVER
                 return { ...DEFAULT_SNAKE_STATE };
             }
