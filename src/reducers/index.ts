@@ -119,7 +119,12 @@ const snakeReducer = (state: ISnake = DEFAULT_SNAKE_STATE, action: IAction): ISn
             return { ...state, apple: newApple, direction: newDirection, links: newLinks };
         }
         case 'TURN': {
-            return { ...state, direction: [ ...state.direction, action.direction ] }
+            const { direction } = state;
+            const lastDirection = direction.slice(-1)[0];
+            if (lastDirection !== action.direction) {
+                return { ...state, direction: [ ...state.direction, action.direction ] };
+            }
+            return { ...state }
         }
         case 'ON': {
             return { ...state, active: true };
