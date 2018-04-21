@@ -1,12 +1,12 @@
 import * as React from 'react';
-import {Direction, IMapPixel } from "./../../reducers";
+import {Direction, IApple, IMapPixel} from "./../../reducers";
 
 const CANVAS_ID: string = "Game";
 
 export interface IColoredSnakeMap extends Array<IMapPixel> { }
 export interface IGameProps {
     active: boolean,
-    apple: IMapPixel,
+    apple: IApple,
     nextFrame: () => any,
     pixelSize: number,
     size: number,
@@ -24,25 +24,32 @@ export default class Game extends React.Component<IGameProps> {
 
     public componentDidUpdate(): void {
         this.draw();
-        setTimeout(() => this.props.nextFrame(), 200);
+        if (this.props.active) {
+            setTimeout(() => this.props.nextFrame(), 200);
+        }
     }
 
     public shouldComponentUpdate(nextProps: IGameProps) {
-        const oldMap = this.props.snakeLinks;
-        const newMap = nextProps.snakeLinks;
-        return JSON.stringify(oldMap) !== JSON.stringify(newMap);
+        const { active: prevActive, snakeLinks: prevSnake } = this.props;
+        const { active: nextActive, snakeLinks: nextSnake } = nextProps;
+        return (prevActive !== nextActive)
+            || (JSON.stringify(prevSnake) !== JSON.stringify(nextSnake));
     }
 
     public render() {
         const canvasSize = this.props.size * this.props.pixelSize;
+        const { apple: { count: appleCount } } = this.props;
         return (
-            <canvas
-                id={CANVAS_ID}
-                width={canvasSize}
-                height={canvasSize}
-                style={{ border: "1px solid black" }}
-                ref={(ref) => this.canvas = ref || undefined}
-            />
+            <div>
+                <h2>You've eaten {this.props.apple.count} { appleCount > 1 ? 'apples': 'apple' }</h2>
+                <canvas
+                    id={CANVAS_ID}
+                    width={canvasSize}
+                    height={canvasSize}
+                    style={{ border: "1px solid black" }}
+                    ref={(ref) => this.canvas = ref || undefined}
+                />
+            </div>
         )
     }
 

@@ -1,5 +1,5 @@
 import {connect} from 'react-redux';
-import {IMapPixel} from "../../reducers";
+import { IApple } from "../../reducers";
 import {Direction, IAction, ISnake} from './../../reducers/index';
 import Game, { IColoredSnakeMap, IGameProps } from './Component';
 
@@ -8,7 +8,7 @@ export interface IStateToProps {
 }
 export interface IConnectStateProps {
     active: boolean,
-    apple: IMapPixel,
+    apple: IApple,
     pixelSize: number,
     size: number,
     snakeLinks: IColoredSnakeMap,

@@ -12,6 +12,9 @@ export interface IMapPixel {
     position: IPosition,
     color: string,
 }
+export interface IApple extends IMapPixel {
+    count: number,
+}
 export enum Direction { UP = "UP", DOWN = "DOWN", LEFT = "LEFT", RIGHT = "RIGHT" }
 export interface ISnakeLinks extends Array<IPosition> { }
 export interface IDirectionMoves extends Array<Direction> { }
@@ -20,16 +23,16 @@ export interface ISnake {
     color: string,
     direction: IDirectionMoves,
     links: ISnakeLinks,
-    apple: IMapPixel,
+    apple: IApple,
     pixelSize: number,
     size: number
 }
 
 // DEFAULTS
-const MAP_SIZE: number = 50;
-const PIXEL_SIZE: number = 8;
+const MAP_SIZE: number = 15;
+const PIXEL_SIZE: number = 15;
 const SNAKE_START: ISnakeLinks = [{ X: 2, Y: 0 }, { X: 1, Y: 0 }, { X: 0, Y: 0 }];
-const APPLE_START_POSITON: IPosition = { X: 5, Y: 0 };
+const APPLE_START_POSITON: IPosition = { X: MAP_SIZE - 1, Y: 0 };
 
 // HELPERS
 const newSnakeHead = (links: ISnakeLinks, direction: Direction): IPosition => {
@@ -70,7 +73,7 @@ const newSnakeHead = (links: ISnakeLinks, direction: Direction): IPosition => {
 }
 const DEFAULT_SNAKE_STATE: ISnake = {
     active: true,
-    apple: { position: APPLE_START_POSITON, color: 'red' },
+    apple: { position: APPLE_START_POSITON, count: 0, color: 'red' },
     color: 'black',
     direction: [Direction.RIGHT],
     links: SNAKE_START,
@@ -94,11 +97,11 @@ const snakeReducer = (state: ISnake = DEFAULT_SNAKE_STATE, action: IAction): ISn
             const { apple, direction, links } = state;
 
             let newLinks: ISnakeLinks;
-            let newApple: IMapPixel;
+            let newApple: IApple;
             const head: IPosition = newSnakeHead(links, direction[0]);
             if (JSON.stringify(head) === JSON.stringify(apple.position)) {
                 newLinks = [head, ...links];
-                newApple = { ...apple, position: moveApple(newLinks, state.size) }
+                newApple = { ...apple, position: moveApple(newLinks, state.size), count: apple.count + 1 };
             } else {
                 newLinks = [head, ...links.slice(0, links.length - 1)]
                 newApple = { ...apple };
